@@ -1,123 +1,40 @@
 const express = require("express");
 const router = express.Router();
 const {
-  Book,
-  validateCreateBook,
-  validateUpdateBook,
-} = require("../models/Book");
-const { verfiyTokenAndAdmin } = require("../middleware/verifyToken");
-const asyncHandler = require("express-async-handler");
-
-/*
-  @des ...... create new book
-  @route...... /api/books
-  @method......post
-  @access .... private (only admin)
-*/
-router.post(
-  "/",
   verfiyTokenAndAdmin,
-  asyncHandler(async (req, res) => {
-    const { error } = validateCreateBook(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-    const book = new Book({
-      title: req.body.title,
-      author: req.body.author,
-      description: req.body.description,
-      price: req.body.price,
-      cover: req.body.cover,
-    });
-    const result = await book.save();
-    res.status(201).json(result);
-  }),
-);
+  verfiyTokenAndAuthorization,
+  verifyToken,
+} = require("../middleware/verifyToken");
+const {
+  getAllBooks,
+  getBookById,
+  createBook,
+  updateBookById,
+  deleteBookById,
+  getLatestBooks,
+  deleteBooks,
+  booksCount,
+} = require("../controller/bookController");
+const bookUploadPdf = require("../controller/bookPdfController");
 
-/*
-  @des ...... get all books
-  @route...... /api/books
-  @method......get
-  @acces ...... public
-*/
+const upload = require("../middleware/uploadImage");
+const uploadPdf = require("../middleware/uploadPdf");
 
-router.get(
-  "/",
-  asyncHandler(async (req, res) => {
-    const books = await Book.find().populate("author");
-    res.status(200).json(books);
-  }),
-);
+router.get("/count", verfiyTokenAndAdmin, booksCount);
+router.get("/latest", verifyToken, getLatestBooks);
+// /api/books
+router
+  .route("/")
+  .get(verifyToken, getAllBooks)
+  .post(verfiyTokenAndAdmin, upload.single("image"), createBook)
+  .delete(verfiyTokenAndAdmin, deleteBooks);
 
-/*
-  @des ...... get book by id
-  @route...... /api/books
-  @method......get
-  @access ........ public
-*/
-router.get(
-  "/:id",
-  asyncHandler(async (req, res) => {
-    const book = await Book.findById(req.params.id).populate("author");
-    if (book) {
-      res.status(200).json(book);
-    } else {
-      res.status(404).json({ message: "book is not found" });
-    }
-  }),
-);
-
-/*
- @des ...... update book by id
- @route .... /api/books/:id
- @method ..... put
- @access ...... private(only admin)
-*/
-
-router.put(
-  "/:id",
-  verfiyTokenAndAdmin,
-  asyncHandler(async (req, res) => {
-    const { error } = validateUpdateBook(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-    const book = await Book.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          title: req.body.title,
-          author: req.body.author,
-          description: req.body.description,
-          price: req.body.price,
-          cover: req.body.cover,
-        },
-      },
-      { new: true },
-    );
-
-    res.status(200).json(book);
-  }),
-);
-
-/*
- @des ...... delete book by id
- @route .... /api/books/:id
- @method ..... delete
- @access ...... private (only admin)
-*/
-
-router.delete(
-  "/:id",
-  verfiyTokenAndAdmin,
-  asyncHandler(async (req, res) => {
-    const book = await Book.findByIdAndDelete(req.params.id);
-    if (book) {
-      res.status(200).json({ message: "book has been deleted" });
-    } else {
-      res.status(404).json({ message: "book is not found" });
-    }
-  }),
-);
+// /api/books/:id
+router
+  .route("/:id")
+  .get(verfiyTokenAndAuthorization, getBookById)
+  .put(verfiyTokenAndAdmin, upload.single("image"), updateBookById)
+  .delete(verfiyTokenAndAdmin, deleteBookById);
+router.post("/:id/pdf", uploadPdf.single("pdf"), bookUploadPdf);
 
 module.exports = router;

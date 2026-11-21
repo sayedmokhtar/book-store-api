@@ -5,6 +5,7 @@ async function connectToDb() {
     console.log("conected to mongodb");
   } catch (error) {
     console.log("concetion failed ", error);
+    throw error;
   }
 }
 module.exports = connectToDb;

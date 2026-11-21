@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 
 // verify token
 function verifyToken(req, res, next) {
-  const token = req.headers.token;
+  const token = req.cookies.token;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
@@ -12,7 +12,7 @@ function verifyToken(req, res, next) {
       res.status(401).json({ message: "invalid token" });
     }
   } else {
-    res.status(401).json({ message: "no token" });
+    res.status(403).json({ message: "Access denied. Please log in" });
   }
 }
 // verfiy token and authorize user
@@ -42,4 +42,5 @@ function verfiyTokenAndAdmin(req, res, next) {
 module.exports = {
   verfiyTokenAndAuthorization,
   verfiyTokenAndAdmin,
+  verifyToken,
 };

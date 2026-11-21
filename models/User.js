@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
 const jwt = require("jsonwebtoken");
+const joiPasswordComlexity = require("joi-password-complexity");
 
 // create schema
 const UserSchema = new mongoose.Schema(
@@ -17,18 +18,30 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      minlength: 2,
+      minlength: 8,
       maxlength: 200,
+      match: [
+        /^[a-zA-Z0-9]+(?: [a-zA-Z0-9]+)*$/,
+        "Username can contain only letters and numbers separated by single spaces",
+      ],
     },
     password: {
       type: String,
       required: true,
       trim: true,
-      minlength: 6,
+      minlength: 8,
     },
     isAdmin: {
       type: Boolean,
       default: false,
+    },
+    loginattempts: {
+      type: Number,
+      default: 0,
+    },
+    lockuntil: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true },
@@ -36,26 +49,33 @@ const UserSchema = new mongoose.Schema(
 // generate token
 UserSchema.methods.generateToken = function () {
   return jwt.sign(
-    { id: this._id, isadmin: this.isadmin },
+    { id: this._id, isAdmin: this.isAdmin },
     process.env.JWT_SECRET_KEY,
+    { expiresIn: "60m" },
   );
 };
-// vaildate register user
+// reset user loginAttempts and lockuntil
+UserSchema.methods.resetLoginAttempts = function () {
+  this.loginattempts = 0;
+  this.lockuntil = null;
+};
 
+// vaildate register user
 function vaildateRegisterUser(obj) {
   const schema = joi.object({
     email: joi.string().trim().min(5).max(100).required().email(),
     username: joi.string().trim().min(2).max(200).required(),
-    password: joi.string().trim().min(6),
+    password: joiPasswordComlexity().required(),
   });
   return schema.validate(obj);
 }
+
 //vaildate user login
 
 function vaildateLoginUser(obj) {
   const schema = joi.object({
     email: joi.string().trim().min(5).max(100).required().email(),
-    password: joi.string().trim().min(6),
+    password: joiPasswordComlexity().required(),
   });
   return schema.validate(obj);
 }
@@ -66,11 +86,18 @@ function vaildateUpdateUser(obj) {
   const schema = joi.object({
     email: joi.string().trim().min(5).max(100).email(),
     username: joi.string().min(2).max(200),
-    password: joi.string().trim().min(6),
+    password: joiPasswordComlexity(),
   });
   return schema.validate(obj);
 }
-
+// vaildate passowrd
+function validatePassword(obj) {
+  const schema = joi.object({
+    password: joiPasswordComlexity(),
+  });
+  return schema.validate(obj);
+}
+UserSchema.index({ name: 1 });
 // create the model
 const User = mongoose.model("User", UserSchema);
 
@@ -79,4 +106,5 @@ module.exports = {
   vaildateLoginUser,
   vaildateRegisterUser,
   vaildateUpdateUser,
+  validatePassword,
 };
