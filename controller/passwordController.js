@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { User } = require("../models/User");
-const sendEmail = require("../utils/sendEmail");
+//const sendEmail = require("../utils/sendEmail");
 const nodeMailer = require("nodemailer");
 const { validatePassword } = require("../models/User");
 /* @des get forgot password view  @method ........ get @route ......... /password/forgot-password @access ........ public*/
@@ -25,7 +25,7 @@ module.exports.sendForgotPasswordLink = asyncHandler(async (req, res) => {
   const token = jwt.sign({ email: user.email, id: user.id }, secret, {
     expiresIn: "10m",
   });
-  const link = `http://localhost:5000/api/password/reset-password/${user._id}/${token}`;
+  const link = `https://book-store-api-1t03.onrender.com/api/password/reset-password/${user._id}/${token}`;
   const transporter = nodeMailer.createTransport({
     service: "gmail",
     auth: {
